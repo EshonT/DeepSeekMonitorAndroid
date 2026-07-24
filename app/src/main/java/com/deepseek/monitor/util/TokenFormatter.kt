@@ -20,16 +20,12 @@ object TokenFormatter {
     }
 
     /**
-     * Token 数量缩写格式。
-     * 规则：>=1亿 → "120M" | >=100万 → "1.2M" | >=1000 → "1.2K" | 其他 → "0"
+     * Token 数量格式：统一以 M（百万）为单位，保留两位小数。
+     * 例：1234567 → "1.23M" | 456789 → "0.46M" | 138874752 → "138.87M"
      */
     fun fmtTokensShort(value: Long): String {
-        return when {
-            value >= 1_0000_0000L -> "${value / 100_0000}M"      // 1亿+
-            value >= 100_0000L -> "${value / 100_0000.0}M"        // 100万+
-            value >= 1000L -> "${value / 1000.0}K"                 // 1K+
-            else -> value.toString()
-        }
+        val m = value / 1_000_000.0
+        return "${DecimalFormat("0.00").format(m)}M"
     }
 
     /**

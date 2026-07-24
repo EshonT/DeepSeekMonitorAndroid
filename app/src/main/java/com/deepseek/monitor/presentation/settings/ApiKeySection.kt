@@ -58,7 +58,7 @@ fun ApiKeySection(
     var showKey by remember { mutableStateOf(false) }
     val focusManager = LocalFocusManager.current
 
-    Column(modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+    Column(modifier = modifier.fillMaxWidth()) {
         SectionHeader(icon = "🔑", title = "API Key")
 
         Spacer(modifier = Modifier.height(12.dp))

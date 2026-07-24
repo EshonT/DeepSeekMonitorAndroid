@@ -87,6 +87,7 @@ fun SettingsScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp)
         ) {
             // ── API Key 区块 ──
             ApiKeySection(
@@ -109,7 +110,7 @@ fun SettingsScreen(
             // 网页登录按钮
             Button(
                 onClick = { showCaptureDialog = true },
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(10.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = LightColors.primary)
             ) {
@@ -120,7 +121,7 @@ fun SettingsScreen(
 
             if (config.usageTokenConfigured) {
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
@@ -139,7 +140,7 @@ fun SettingsScreen(
                 Spacer(modifier = Modifier.height(8.dp))
                 Button(
                     onClick = viewModel::clearUsageToken,
-                    modifier = Modifier.padding(horizontal = 16.dp),
+                    modifier = Modifier,
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Text("清除 Token")
@@ -151,7 +152,7 @@ fun SettingsScreen(
             OutlinedTextField(
                 value = usageTokenInput,
                 onValueChange = viewModel::onUsageTokenInputChanged,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                modifier = Modifier.fillMaxWidth(),
                 placeholder = { Text("粘贴用量 Token") },
                 singleLine = true,
                 shape = RoundedCornerShape(10.dp)
@@ -162,7 +163,7 @@ fun SettingsScreen(
                 Button(
                     onClick = viewModel::saveUsageToken,
                     enabled = !usageTokenSaving,
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(10.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = LightColors.primary)
                 ) {
@@ -177,7 +178,7 @@ fun SettingsScreen(
                     text = feedback,
                     style = MaterialTheme.typography.bodySmall,
                     color = if (usageTokenError) LightColors.error else LightColors.success,
-                    modifier = Modifier.padding(horizontal = 16.dp)
+                    modifier = Modifier
                 )
             }
 
@@ -187,7 +188,7 @@ fun SettingsScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
@@ -207,7 +208,7 @@ fun SettingsScreen(
                 text = "刷新间隔",
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                modifier = Modifier.padding(horizontal = 16.dp)
+                modifier = Modifier
             )
 
             Spacer(modifier = Modifier.height(6.dp))
@@ -215,7 +216,7 @@ fun SettingsScreen(
             RefreshIntervalSelector(
                 current = config.refreshIntervalSeconds,
                 onSelect = viewModel::setRefreshInterval,
-                modifier = Modifier.padding(horizontal = 16.dp)
+                modifier = Modifier
             )
 
             Spacer(modifier = Modifier.height(32.dp))
@@ -224,7 +225,7 @@ fun SettingsScreen(
                 text = "DeepSeek Monitor Android v1.0.0",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
-                modifier = Modifier.padding(horizontal = 16.dp)
+                modifier = Modifier
             )
 
             Spacer(modifier = Modifier.height(24.dp))

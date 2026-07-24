@@ -1,5 +1,6 @@
 package com.deepseek.monitor.presentation.dashboard
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -8,26 +9,38 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.deepseek.monitor.domain.model.Balance
+import com.deepseek.monitor.domain.model.UsageDay
 import com.deepseek.monitor.presentation.theme.LightColors
+import com.deepseek.monitor.util.TokenFormatter
 
-/**
- * 余额卡片组件。
- * 展示总余额 + 充值/赠送分项，与 Windows 版仪表盘 BalanceCard 布局一致。
- */
 @Composable
 fun BalanceCard(
     balance: Balance,
+    todayUsage: UsageDay? = null,
+    refreshing: Boolean = false,
+    onRefresh: () -> Unit = {},
+    onSettings: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -35,12 +48,11 @@ fun BalanceCard(
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
             .background(MaterialTheme.colorScheme.surface)
-            .padding(20.dp)
+            .padding(16.dp)
     ) {
-        // 标题行
+        // 标题行：账户余额 + 操作按钮
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
@@ -49,6 +61,7 @@ fun BalanceCard(
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
             )
             if (balance.isAvailable) {
+                Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "可用",
                     style = MaterialTheme.typography.labelMedium,
@@ -56,62 +69,59 @@ fun BalanceCard(
                     fontWeight = FontWeight.SemiBold
                 )
             }
+            Spacer(modifier = Modifier.weight(1f))
+
+            IconButton(onClick = onRefresh, enabled = !refreshing, modifier = Modifier.size(44.dp)) {
+                Icon(
+                    Icons.Default.Refresh, "刷新",
+                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                    modifier = Modifier.size(26.dp)
+                )
+            }
+            IconButton(onClick = onSettings, modifier = Modifier.size(44.dp)) {
+                Icon(
+                    Icons.Default.Settings, "设置",
+                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                    modifier = Modifier.size(26.dp)
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // 大额数字
-        Text(
-            text = "${balance.totalBalance} ${balance.currency}",
-            style = MaterialTheme.typography.displayLarge.copy(fontSize = 32.sp),
-            color = MaterialTheme.colorScheme.onSurface,
-            fontWeight = FontWeight.Bold
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // 分项：充值余额 / 赠送余额
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            verticalAlignment = Alignment.Bottom
         ) {
-            BalanceSubItem(
-                label = "充值余额",
-                value = balance.toppedUpBalance,
-                modifier = Modifier.weight(1f)
+            Text(
+                text = balance.totalBalance,
+                style = MaterialTheme.typography.displayLarge.copy(fontSize = 36.sp),
+                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.Bold
             )
-            BalanceSubItem(
-                label = "赠送余额",
-                value = balance.grantedBalance,
-                modifier = Modifier.weight(1f)
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(
+                text = balance.currency,
+                style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                modifier = Modifier.padding(bottom = 4.dp)
             )
+            Spacer(modifier = Modifier.weight(1f))
+            if (todayUsage != null) {
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(
+                        "当日消耗",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                    )
+                    Text(
+                        TokenFormatter.fmtMoney(todayUsage.totalCost),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    )
+                }
+            }
         }
     }
 }
 
-@Composable
-private fun BalanceSubItem(
-    label: String,
-    value: String,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(10.dp))
-            .background(MaterialTheme.colorScheme.background)
-            .padding(12.dp)
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = value,
-            style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.onSurface,
-            fontWeight = FontWeight.SemiBold
-        )
-    }
-}

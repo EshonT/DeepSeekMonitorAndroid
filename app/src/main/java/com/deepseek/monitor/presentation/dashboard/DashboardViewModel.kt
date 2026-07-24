@@ -15,9 +15,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-/**
- * 仪表盘 UI 状态。
- */
 data class DashboardUiState(
     val balanceState: DataState = DataState.Idle,
     val usageState: DataState = DataState.Idle,
@@ -28,7 +25,6 @@ data class DashboardUiState(
     val currentMonth: Int = 0,
     val currentYear: Int = 0,
 
-    /** 当前是否正在刷新 */
     val isRefreshing: Boolean = false
 )
 
@@ -36,9 +32,6 @@ sealed class DataState {
     data object Idle : DataState()
     data object Loading : DataState()
     data object Ok : DataState()
-    /**
-     * 未配置凭据的静默态（不展示错误，提示用户去设置）。
-     */
     data object NoCredential : DataState()
     data class Error(val message: String) : DataState()
 }
@@ -53,7 +46,6 @@ class DashboardViewModel @Inject constructor(
     val uiState: StateFlow<DashboardUiState> = _uiState.asStateFlow()
 
     init {
-        // 检查配置后再决定是否自动拉取
         viewModelScope.launch {
             val config = configRepository.config.first()
             val now = java.time.LocalDate.now()
@@ -72,7 +64,6 @@ class DashboardViewModel @Inject constructor(
 
     fun refresh() {
         viewModelScope.launch {
-            // 刷新前重新检查凭据状态
             val config = configRepository.config.first()
             _uiState.update { it.copy(
                 isRefreshing = true,

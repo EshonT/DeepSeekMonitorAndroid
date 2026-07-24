@@ -1,6 +1,7 @@
 package com.deepseek.monitor.presentation.dashboard
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -8,9 +9,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -23,90 +22,84 @@ import com.deepseek.monitor.domain.model.UsageModel
 import com.deepseek.monitor.presentation.theme.LightColors
 import com.deepseek.monitor.util.TokenFormatter
 
-/**
- * 单模型用量行组件。
- * 与 Windows 版仪表盘 UsageRow 布局一致：
- * 左侧模型名 + Token 进度条 + 费用，右侧缓存命中率。
- */
 @Composable
 fun UsageRow(
     model: UsageModel,
-    maxTokens: Long = 10_000_000L,  // 进度条上限
     onClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    val hitRatio = TokenFormatter.cacheHitRatio(model.cacheHitTokens, model.cacheMissTokens)
+
     Column(
         modifier = modifier
-            .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
             .background(MaterialTheme.colorScheme.surface)
+            .border(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f), RoundedCornerShape(12.dp))
             .clickable(onClick = onClick)
-            .padding(16.dp)
+            .padding(horizontal = 14.dp, vertical = 12.dp)
     ) {
-        // 第一行：模型名 + 费用
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            val icon = when (model.key) {
-                "flash" -> "⚡"
-                "pro" -> "🧠"
-                else -> "📊"
-            }
-            Text(
-                text = "$icon ${model.name}",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                fontWeight = FontWeight.SemiBold
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = TokenFormatter.fmtMoney(model.cost),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-            )
-            Spacer(modifier = Modifier.weight(1f))
-            Text(
-                text = TokenFormatter.fmtTokensShort(model.totalTokens) + " T",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-            )
-        }
-
-        Spacer(modifier = Modifier.height(10.dp))
-
-        // 进度条
-        val progress = (model.totalTokens.toFloat() / maxTokens.coerceAtLeast(1)).coerceIn(0f, 1f)
-        LinearProgressIndicator(
-            progress = { progress },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(8.dp)
-                .clip(RoundedCornerShape(4.dp)),
-            color = if (model.key == "flash") LightColors.flash else LightColors.pro,
-            trackColor = MaterialTheme.colorScheme.background,
+        // 上：模型名
+        Text(
+            model.name,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
         )
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(6.dp))
 
-        // 缓存命中率
-        val hitRatio = TokenFormatter.cacheHitRatio(model.cacheHitTokens, model.cacheMissTokens)
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "请求 ${TokenFormatter.fmtInt(model.requestCount)} 次",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-            )
+        // 下：左右分栏
+        Row(modifier = Modifier.fillMaxWidth()) {
+            // 左下：用量在上 + 缓存命中率在下，靠右对齐
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    TokenFormatter.fmtTokensShort(model.totalTokens) + " T",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                )
+                Text(
+                    "缓存命中率 ${TokenFormatter.fmtPercent(hitRatio)}",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = LightColors.success,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+
             Spacer(modifier = Modifier.weight(1f))
+
+            // 右下：金额
             Text(
-                text = "缓存命中 ${TokenFormatter.fmtPercent(hitRatio)}",
-                style = MaterialTheme.typography.bodySmall,
-                color = LightColors.success,
-                fontWeight = FontWeight.Medium
+                TokenFormatter.fmtMoney(model.cost),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
             )
+        }
+    }
+}
+
+@Composable
+fun UsageSection(
+    models: List<UsageModel>,
+    onModelClick: (String) -> Unit,
+    vertical: Boolean = false,
+    modifier: Modifier = Modifier
+) {
+    if (vertical) {
+        Column(modifier = modifier.fillMaxWidth()) {
+            models.forEach { model ->
+                UsageRow(model = model, onClick = { onModelClick(model.key) })
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+        }
+    } else {
+        Row(
+            modifier = modifier.fillMaxWidth(),
+            horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(10.dp)
+        ) {
+            models.forEach { model ->
+                UsageRow(model = model, onClick = { onModelClick(model.key) }, modifier = Modifier.weight(1f))
+            }
         }
     }
 }
