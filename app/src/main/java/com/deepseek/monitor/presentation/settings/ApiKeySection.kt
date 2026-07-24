@@ -3,6 +3,7 @@ package com.deepseek.monitor.presentation.settings
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -33,10 +34,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import com.deepseek.monitor.presentation.theme.EInkColors
 import com.deepseek.monitor.presentation.theme.LightColors
+import com.deepseek.monitor.presentation.theme.LocalEInkMode
 
 /**
  * API Key 配置区域。
@@ -57,25 +61,21 @@ fun ApiKeySection(
 ) {
     var showKey by remember { mutableStateOf(false) }
     val focusManager = LocalFocusManager.current
+    val eink = LocalEInkMode.current
 
     Column(modifier = modifier.fillMaxWidth()) {
-        SectionHeader(icon = "🔑", title = "API Key")
+        SectionHeader("API Key")
 
         Spacer(modifier = Modifier.height(12.dp))
 
         if (configured) {
-            // 已配置状态：显示预览 + 状态
+            // 已配置状态
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = Icons.Default.CheckCircle,
-                    contentDescription = "已配置",
-                    tint = LightColors.success,
-                    modifier = Modifier.height(18.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
+                Text("✓", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                Spacer(modifier = Modifier.width(6.dp))
                 Text(
                     text = preview ?: "已保存",
                     style = MaterialTheme.typography.bodyMedium,
@@ -128,9 +128,11 @@ fun ApiKeySection(
             Button(
                 onClick = onSave,
                 enabled = !saving,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().then(
+                    if (eink) Modifier.border(1.5.dp, MaterialTheme.colorScheme.onSurface, RoundedCornerShape(10.dp)) else Modifier
+                ),
                 shape = RoundedCornerShape(10.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = LightColors.primary)
+                colors = if (eink) ButtonDefaults.outlinedButtonColors() else ButtonDefaults.buttonColors(containerColor = LightColors.primary)
             ) {
                 Text(if (saving) "验证中..." else "验证并保存")
             }
@@ -150,13 +152,13 @@ fun ApiKeySection(
 
 /** 区域小标题 */
 @Composable
-fun SectionHeader(icon: String, title: String, modifier: Modifier = Modifier) {
+fun SectionHeader(title: String, modifier: Modifier = Modifier) {
     Column(modifier = modifier.fillMaxWidth()) {
         Spacer(modifier = Modifier.height(8.dp))
         HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = "$icon  $title",
+            text = title,
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurface
         )

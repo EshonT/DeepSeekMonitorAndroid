@@ -73,8 +73,7 @@ fun DashboardScreen(
             modifier = modifier
                 .fillMaxSize()
                 .statusBarsPadding()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = 16.dp, vertical = 8.dp)
         ) {
             Spacer(modifier = Modifier.height(6.dp))
 
@@ -103,12 +102,10 @@ fun DashboardScreen(
                             onSettings = onNavigateToSettings
                         )
                     } else {
-                        NoApiKeyPlaceholder()
+                        NoApiKeyPlaceholder(onNavigateToSettings)
                     }
                 }
             }
-
-            Spacer(modifier = Modifier.height(10.dp))
 
             // ── 模型用量 + 趋势图 ──
             val usage = usageResult
@@ -120,36 +117,23 @@ fun DashboardScreen(
                     .takeLast(7)
 
                 if (isLandscape && pastDays.isNotEmpty()) {
-                    // 横屏：左卡片 + 右图表
-                    Row(modifier = Modifier.fillMaxWidth()) {
+                    // 横屏：左卡片 + 右图表（撑满高度）
+                    Row(modifier = Modifier.fillMaxWidth().weight(1f)) {
                         Column(modifier = Modifier.weight(0.3f)) {
-                            UsageSection(
-                                models = usage.models,
-                                onModelClick = onNavigateToDetail,
-                                vertical = true
-                            )
+                            UsageSection(models = usage.models, onModelClick = onNavigateToDetail, vertical = true)
                         }
-                        Spacer(modifier = Modifier.width(16.dp))
-                        UsageTrendChart(
-                            days = pastDays,
-                            modifier = Modifier.weight(0.7f)
-                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        UsageTrendChart(days = pastDays, modifier = Modifier.weight(0.7f), fillHeight = true)
                     }
                 } else {
-                    // 竖屏：上下卡片 + 下图
-                    UsageSection(
-                        models = usage.models,
-                        onModelClick = onNavigateToDetail,
-                        vertical = true
-                    )
+                    // 竖屏：卡片 + 图表（自然高度）
+                    UsageSection(models = usage.models, onModelClick = onNavigateToDetail, vertical = true)
                     if (pastDays.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
                         UsageTrendChart(days = pastDays)
                     }
                 }
             }
-
-            Spacer(modifier = Modifier.height(24.dp))
         }
 }
 
@@ -157,7 +141,7 @@ fun DashboardScreen(
  * 未配置 API Key 时的空状态提示。
  */
 @Composable
-private fun NoApiKeyPlaceholder() {
+private fun NoApiKeyPlaceholder(onSettings: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -174,11 +158,12 @@ private fun NoApiKeyPlaceholder() {
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface
             )
-            Text(
-                "点击右上角设置图标添加",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-            )
+            Spacer(modifier = Modifier.height(8.dp))
+            IconButton(onClick = onSettings) {
+                Icon(Icons.Default.Settings, "设置",
+                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                    modifier = Modifier.size(24.dp))
+            }
         }
     }
 }

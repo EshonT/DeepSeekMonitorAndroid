@@ -19,7 +19,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.deepseek.monitor.domain.model.UsageModel
+import com.deepseek.monitor.presentation.theme.EInkColors
 import com.deepseek.monitor.presentation.theme.LightColors
+import com.deepseek.monitor.presentation.theme.LocalEInkMode
 import com.deepseek.monitor.util.TokenFormatter
 
 @Composable
@@ -29,6 +31,8 @@ fun UsageRow(
     modifier: Modifier = Modifier
 ) {
     val hitRatio = TokenFormatter.cacheHitRatio(model.cacheHitTokens, model.cacheMissTokens)
+    val eink = LocalEInkMode.current
+    val successColor = if (eink) EInkColors.darkGray else LightColors.success
 
     Column(
         modifier = modifier
@@ -60,7 +64,7 @@ fun UsageRow(
                 Text(
                     "缓存命中率 ${TokenFormatter.fmtPercent(hitRatio)}",
                     style = MaterialTheme.typography.labelMedium,
-                    color = LightColors.success,
+                    color = successColor,
                     fontWeight = FontWeight.Medium
                 )
             }

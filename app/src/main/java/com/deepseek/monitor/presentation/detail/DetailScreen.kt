@@ -69,8 +69,7 @@ fun DetailScreen(
                     modifier = modifier
                         .fillMaxSize()
                         .statusBarsPadding()
-                        .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 16.dp)
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
                 ) {
                     Spacer(modifier = Modifier.height(16.dp))
 
@@ -107,7 +106,7 @@ private fun HeaderRow(name: String, modelData: UsageModel?, model: String) {
             Text(
                 TokenFormatter.fmtMoney(modelData.cost),
                 style = MaterialTheme.typography.headlineMedium,
-                color = if (model == "flash") MaterialTheme.colorScheme.primary else LightColors.pro,
+                color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Bold
             )
         }
@@ -165,7 +164,7 @@ private fun LandscapeLayout(
                 fontWeight = FontWeight.SemiBold
             )
             Spacer(modifier = Modifier.height(4.dp))
-            DailyLineChart(days = recentDays, model = model)
+            DailyLineChart(days = recentDays, model = model, fillHeight = true)
         }
     }
 }

@@ -2,7 +2,8 @@ package com.deepseek.monitor.presentation.detail
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -31,13 +32,16 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.deepseek.monitor.domain.model.UsageDay
+import com.deepseek.monitor.presentation.theme.EInkColors
 import com.deepseek.monitor.presentation.theme.LightColors
+import com.deepseek.monitor.presentation.theme.LocalEInkMode
 import com.deepseek.monitor.util.TokenFormatter
 
 /**
@@ -48,7 +52,8 @@ import com.deepseek.monitor.util.TokenFormatter
 fun DailyLineChart(
     days: List<UsageDay>,
     model: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    fillHeight: Boolean = false
 ) {
     if (days.isEmpty()) return
 
@@ -67,9 +72,13 @@ fun DailyLineChart(
     val bottomLabel = "0"
 
     var tooltipIndex by remember { mutableStateOf(-1) }
-    val chartH = 170.dp
+    val chartH = if (fillHeight) 130.dp else 170.dp
     val dotColor = MaterialTheme.colorScheme.onSurface
     val axisColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.45f)
+    val isEInk = LocalEInkMode.current
+    val hitColor = if (isEInk) EInkColors.darkGray else LightColors.chartHit
+    val missColor = if (isEInk) EInkColors.midGray else LightColors.chartMiss
+    val respColor = if (isEInk) EInkColors.black else LightColors.chartResponse
 
     Column(modifier = modifier.fillMaxWidth()) {
         // 图例
@@ -77,11 +86,11 @@ fun DailyLineChart(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
             horizontalArrangement = Arrangement.End
         ) {
-            Legend(color = LightColors.chartHit, label = "命中")
+            Legend(color = hitColor, label = "命中")
             Spacer(modifier = Modifier.width(8.dp))
-            Legend(color = LightColors.chartMiss, label = "未命中")
+            Legend(color = missColor, label = "未命中")
             Spacer(modifier = Modifier.width(8.dp))
-            Legend(color = LightColors.chartResponse, label = "输出")
+            Legend(color = respColor, label = "输出")
         }
 
         Spacer(modifier = Modifier.height(4.dp))
@@ -92,7 +101,7 @@ fun DailyLineChart(
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(12.dp))
                 .background(MaterialTheme.colorScheme.surface)
-                .padding(start = 0.dp, end = 8.dp, top = 12.dp, bottom = 4.dp)
+                .padding(start = 0.dp, end = 8.dp, top = 12.dp, bottom = 8.dp)
         ) {
             Row(modifier = Modifier.fillMaxWidth()) {
                 // 纵轴标注列
@@ -123,11 +132,30 @@ fun DailyLineChart(
                             .fillMaxWidth()
                             .height(chartH)
                             .pointerInput(points.size) {
-                                detectTapGestures { offset ->
+                                awaitEachGesture {
+                                    val down = awaitFirstDown()
+                                    down.consume()
                                     val step = size.width / (points.size - 1).coerceAtLeast(1)
-                                    val idx = ((offset.x + step / 2) / step).toInt()
+                                    tooltipIndex = ((down.position.x + step / 2) / step).toInt()
                                         .coerceIn(0, points.size - 1)
-                                    tooltipIndex = if (tooltipIndex == idx) -1 else idx
+
+                                    var released = false
+                                    while (!released) {
+                                        val event = awaitPointerEvent()
+                                        when (event.type) {
+                                            PointerEventType.Move -> {
+                                                val pos = event.changes.firstOrNull()?.position ?: break
+                                                val step2 = size.width / (points.size - 1).coerceAtLeast(1)
+                                                tooltipIndex = ((pos.x + step2 / 2) / step2).toInt()
+                                                    .coerceIn(0, points.size - 1)
+                                            }
+                                            PointerEventType.Release -> {
+                                                tooltipIndex = -1
+                                                released = true
+                                            }
+                                            else -> {}
+                                        }
+                                    }
                                 }
                             }
                     ) {
@@ -149,9 +177,9 @@ fun DailyLineChart(
                         drawLine(axisColor, Offset(0f, h), Offset(w, h), 1.5.dp.toPx())
 
                         // 三条曲线
-                        drawCurvePath(respLine, LightColors.chartResponse)
-                        drawCurvePath(missLine, LightColors.chartMiss)
-                        drawCurvePath(hitLine, LightColors.chartHit)
+                        drawCurvePath(respLine, respColor)
+                        drawCurvePath(missLine, missColor)
+                        drawCurvePath(hitLine, hitColor)
 
                         // Tooltip 圆点
                         if (tooltipIndex in points.indices) {

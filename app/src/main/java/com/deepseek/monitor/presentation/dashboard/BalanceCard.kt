@@ -31,7 +31,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.deepseek.monitor.domain.model.Balance
 import com.deepseek.monitor.domain.model.UsageDay
+import com.deepseek.monitor.presentation.theme.EInkColors
 import com.deepseek.monitor.presentation.theme.LightColors
+import com.deepseek.monitor.presentation.theme.LocalEInkMode
 import com.deepseek.monitor.util.TokenFormatter
 
 @Composable
@@ -43,6 +45,9 @@ fun BalanceCard(
     onSettings: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    val eink = LocalEInkMode.current
+    val successColor = if (eink) EInkColors.darkGray else LightColors.success
+
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -65,7 +70,7 @@ fun BalanceCard(
                 Text(
                     text = "可用",
                     style = MaterialTheme.typography.labelMedium,
-                    color = LightColors.success,
+                    color = successColor,
                     fontWeight = FontWeight.SemiBold
                 )
             }

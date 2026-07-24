@@ -24,6 +24,7 @@ data class SettingsUiState(
         apiKeyConfigured = false,
         apiKeyPreview = null,
         usageTokenConfigured = false,
+        themeMode = "auto",
         refreshIntervalSeconds = 60,
         autoRefreshEnabled = false
     ),
@@ -167,6 +168,10 @@ class SettingsViewModel @Inject constructor(
                 refreshScheduler.schedule(seconds)
             }
         }
+    }
+
+    fun setThemeMode(mode: String) {
+        viewModelScope.launch { configRepository.setThemeMode(mode) }
     }
 
     fun setAutoRefresh(enabled: Boolean) {

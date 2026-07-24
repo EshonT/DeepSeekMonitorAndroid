@@ -15,16 +15,28 @@ class ConfigRepositoryImpl @Inject constructor(
 ) : ConfigRepository {
 
     override val config: Flow<AppConfig> = combine(
-        configDataStore.apiKeyFlow,
-        configDataStore.apiKeyPreviewFlow,
-        configDataStore.usageTokenFlow,
-        configDataStore.refreshIntervalFlow,
+        combine(
+            configDataStore.apiKeyFlow,
+            configDataStore.apiKeyPreviewFlow,
+            configDataStore.usageTokenFlow,
+            configDataStore.themeModeFlow,
+            configDataStore.refreshIntervalFlow,
+        ) { apiKey, preview, usageToken, themeMode, interval ->
+            arrayOf(apiKey, preview, usageToken, themeMode, interval)
+        },
         configDataStore.autoRefreshFlow,
-    ) { apiKey, preview, usageToken, interval, autoRefresh ->
+    ) { arr, autoRefresh ->
+        @Suppress("UNCHECKED_CAST")
+        val apiKey = arr[0] as String?
+        val preview = arr[1] as String?
+        val usageToken = arr[2] as String?
+        val themeMode = arr[3] as String
+        val interval = arr[4] as Int
         AppConfig(
             apiKeyConfigured = !apiKey.isNullOrEmpty(),
             apiKeyPreview = preview,
             usageTokenConfigured = !usageToken.isNullOrEmpty(),
+            themeMode = themeMode,
             refreshIntervalSeconds = interval,
             autoRefreshEnabled = autoRefresh
         )

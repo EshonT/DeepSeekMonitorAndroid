@@ -10,6 +10,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -59,6 +61,11 @@ class DashboardViewModel @Inject constructor(
             if (config.apiKeyConfigured || config.usageTokenConfigured) {
                 doRefresh()
             }
+        }
+
+        // 监听从设置页配置凭据后自动刷新
+        viewModelScope.launch {
+            configRepository.config.drop(1).collectLatest { refresh() }
         }
     }
 

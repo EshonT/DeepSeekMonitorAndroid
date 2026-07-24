@@ -15,6 +15,9 @@ data class AppConfig(
     /** 用量 Token 是否已配置 */
     val usageTokenConfigured: Boolean,
 
+    /** 主题模式：auto / light / dark / eink */
+    val themeMode: String,
+
     /** 自动刷新间隔（秒）：60/300/1800/3600 */
     val refreshIntervalSeconds: Int,
 
