@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 应用主色系：DeepSeek 品牌蓝 #4D6BFE -->
+    <color name="primary">#FF4D6BFE</color>
+    <color name="primary_dark">#FF3B55E0</color>
+    <color name="background">#FFF5F7FA</color>
+    <color name="surface">#FFFFFFFF</color>
+    <color name="on_primary">#FFFFFFFF</color>
+    <color name="ic_launcher_background">#FF4D6BFE</color>
+
+    <style name="Theme.DeepSeekMonitor" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+
+    <string name="app_name">DeepSeek Monitor</string>
+</resources>
