@@ -34,7 +34,6 @@ sealed class DataState {
     data object Idle : DataState()
     data object Loading : DataState()
     data object Ok : DataState()
-    data object NoCredential : DataState()
     data class Error(val message: String) : DataState()
 }
 
@@ -51,16 +50,8 @@ class DashboardViewModel @Inject constructor(
         viewModelScope.launch {
             val config = configRepository.config.first()
             val now = java.time.LocalDate.now()
-            _uiState.update { it.copy(
-                currentMonth = now.monthValue,
-                currentYear = now.year,
-                balanceState = if (config.apiKeyConfigured) DataState.Loading else DataState.NoCredential,
-                usageState = if (config.usageTokenConfigured) DataState.Loading else DataState.NoCredential
-            )}
-
-            if (config.apiKeyConfigured || config.usageTokenConfigured) {
-                doRefresh()
-            }
+            _uiState.update { it.copy(currentMonth = now.monthValue, currentYear = now.year) }
+            refreshInternal(checkConfig = true)
         }
 
         // 监听从设置页配置凭据后自动刷新
@@ -70,20 +61,30 @@ class DashboardViewModel @Inject constructor(
     }
 
     fun refresh() {
-        viewModelScope.launch {
-            val config = configRepository.config.first()
-            _uiState.update { it.copy(
-                isRefreshing = true,
-                balanceState = if (config.apiKeyConfigured) DataState.Loading else DataState.NoCredential,
-                usageState = if (config.usageTokenConfigured) DataState.Loading else DataState.NoCredential
-            )}
+        viewModelScope.launch { refreshInternal(checkConfig = false) }
+    }
 
-            if (config.apiKeyConfigured || config.usageTokenConfigured) {
-                doRefresh()
-            } else {
-                _uiState.update { it.copy(isRefreshing = false) }
-            }
+    /**
+     * 统一刷新入口。checkConfig=true 时先检查凭据状态：
+     * 无凭据 → 直接 Ok（显示 "-"），有凭据 → 发起网络请求。
+     * checkConfig=false 时用户主动触发，始终发起请求。
+     */
+    private suspend fun refreshInternal(checkConfig: Boolean) {
+        val config = configRepository.config.first()
+        if (checkConfig && !config.apiKeyConfigured && !config.usageTokenConfigured) {
+            _uiState.update { it.copy(
+                balanceState = DataState.Ok,
+                usageState = DataState.Ok,
+                isRefreshing = false
+            )}
+            return
         }
+        _uiState.update { it.copy(
+            isRefreshing = true,
+            balanceState = DataState.Loading,
+            usageState = DataState.Loading
+        )}
+        doRefresh()
     }
 
     private suspend fun doRefresh() {
@@ -95,12 +96,12 @@ class DashboardViewModel @Inject constructor(
             balanceState = when {
                 result.balance != null -> DataState.Ok
                 result.balanceError != null -> DataState.Error(result.balanceError)
-                else -> DataState.NoCredential
+                else -> DataState.Ok
             },
             usageState = when {
                 result.usage != null -> DataState.Ok
                 result.usageError != null -> DataState.Error(result.usageError)
-                else -> DataState.NoCredential
+                else -> DataState.Ok
             },
             isRefreshing = false
         )}

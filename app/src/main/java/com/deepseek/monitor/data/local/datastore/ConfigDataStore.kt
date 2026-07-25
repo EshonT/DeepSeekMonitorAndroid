@@ -8,6 +8,8 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.deepseek.monitor.util.EncryptedStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -56,10 +58,13 @@ class ConfigDataStore @Inject constructor(
         prefs[Keys.AUTO_REFRESH] ?: false
     }
 
-    // ── 敏感 Flow（加密存储） ──
-    val apiKeyFlow: Flow<String?> = flowFromSecure("api_key")
-    val apiKeyPreviewFlow: Flow<String?> = flowFromSecure("api_key_preview")
-    val usageTokenFlow: Flow<String?> = flowFromSecure("usage_token")
+    // ── 敏感 Flow（MutableStateFlow，写入时同步 push） ──
+    private val _apiKeyFlow = MutableStateFlow(securePrefs.getString("api_key", null))
+    val apiKeyFlow: Flow<String?> = _apiKeyFlow.asStateFlow()
+    private val _apiKeyPreviewFlow = MutableStateFlow(securePrefs.getString("api_key_preview", null))
+    val apiKeyPreviewFlow: Flow<String?> = _apiKeyPreviewFlow.asStateFlow()
+    private val _usageTokenFlow = MutableStateFlow(securePrefs.getString("usage_token", null))
+    val usageTokenFlow: Flow<String?> = _usageTokenFlow.asStateFlow()
 
     // ── 配置读写 ──
 
@@ -94,10 +99,13 @@ class ConfigDataStore @Inject constructor(
     // ── 敏感数据读写（加密） ──
 
     fun saveApiKey(apiKey: String) {
+        val preview = maskApiKey(apiKey)
         securePrefs.edit()
             .putString("api_key", apiKey)
-            .putString("api_key_preview", maskApiKey(apiKey))
+            .putString("api_key_preview", preview)
             .commit()  // 同步写入，确保 AuthInterceptor 立即可读
+        _apiKeyFlow.value = apiKey
+        _apiKeyPreviewFlow.value = preview
     }
 
     fun clearApiKey() {
@@ -105,14 +113,23 @@ class ConfigDataStore @Inject constructor(
             .remove("api_key")
             .remove("api_key_preview")
             .commit()
+        _apiKeyFlow.value = null
+        _apiKeyPreviewFlow.value = null
     }
 
-    fun saveUsageToken(token: String) {
+    /** 仅写入加密存储，不推送 Flow。由 UseCase 验证后手动推送。 */
+    fun saveUsageTokenSilent(token: String) {
         securePrefs.edit().putString("usage_token", token).commit()
+    }
+
+    /** 推送当前存储中的 Token 到 Flow，触发 UI 刷新。 */
+    fun notifyUsageTokenChanged() {
+        _usageTokenFlow.value = securePrefs.getString("usage_token", null)
     }
 
     fun clearUsageToken() {
         securePrefs.edit().remove("usage_token").commit()
+        _usageTokenFlow.value = null
     }
 
     // ── 同步读取（供 Interceptor 使用） ──
@@ -121,18 +138,6 @@ class ConfigDataStore @Inject constructor(
     fun getUsageTokenSync(): String? = securePrefs.getString("usage_token", null)
 
     // ── 内部方法 ──
-
-    /**
-     * 从加密存储读取并转为 Flow。
-     * 注意：EncryptedSharedPreferences 不支持 Flow，这里提供轮询访问方式。
-     */
-    private fun flowFromSecure(key: String): Flow<String?> {
-        // EncryptedSharedPreferences 本身不支持 Flow 监听，
-        // 此处 flow 仅提供初始值。变更由 ViewModel 层 push 触发。
-        return kotlinx.coroutines.flow.flow {
-            emit(securePrefs.getString(key, null))
-        }
-    }
 
     /**
      * API Key 预览脱敏：展示前7位 + "..." + 后4位。

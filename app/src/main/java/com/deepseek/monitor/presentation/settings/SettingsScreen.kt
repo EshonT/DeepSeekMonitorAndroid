@@ -57,6 +57,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.deepseek.monitor.presentation.theme.EInkColors
 import com.deepseek.monitor.presentation.theme.LightColors
 import com.deepseek.monitor.presentation.theme.LocalEInkMode
 import kotlin.math.roundToInt
@@ -110,7 +111,7 @@ fun SettingsScreen(
 
             // 主题行
             ThemePicker(current = config.themeMode, onSelect = viewModel::setThemeMode)
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             // 自动刷新 — 滑块五档（最左=关闭）
             RefreshIntervalSlider(
@@ -121,11 +122,9 @@ fun SettingsScreen(
                 }
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             // ── API Key ──
             SectionTitle("API Key")
@@ -391,6 +390,8 @@ private fun RefreshIntervalSlider(
     current: Int, enabled: Boolean,
     onSelect: (seconds: Int, on: Boolean) -> Unit
 ) {
+    val isEInk = LocalEInkMode.current
+    val accentColor = if (isEInk) EInkColors.black else MaterialTheme.colorScheme.primary
     val options = listOf(0 to "关闭", 60 to "1分钟", 300 to "5分钟", 1800 to "30分钟", 3600 to "1小时")
     val idx = if (!enabled) 0 else options.indexOfFirst { it.first == current }.coerceAtLeast(0)
     var sliderPos by remember { mutableStateOf(idx.toFloat()) }
@@ -408,14 +409,14 @@ private fun RefreshIntervalSlider(
             Text(options[idx].second,
                 style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold,
                 color = if (idx == 0) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
-                else LightColors.primary)
+                else accentColor)
         }
 
         Spacer(modifier = Modifier.height(8.dp))
 
         // 自绘档位滑块
         val trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
-        val dotColor = LightColors.primary
+        val dotColor = accentColor
         val inset = 16.dp
         androidx.compose.foundation.Canvas(
             modifier = Modifier
@@ -474,7 +475,7 @@ private fun RefreshIntervalSlider(
             options.forEachIndexed { i, (_, label) ->
                 Text(label,
                     fontSize = 11.sp,
-                    color = if (i == idx) LightColors.primary
+                    color = if (i == idx) accentColor
                     else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
                     fontWeight = if (i == idx) FontWeight.SemiBold else FontWeight.Normal,
                     textAlign = TextAlign.Center,

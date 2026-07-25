@@ -38,7 +38,7 @@ import com.deepseek.monitor.util.TokenFormatter
 
 @Composable
 fun BalanceCard(
-    balance: Balance,
+    balance: Balance? = null,
     todayUsage: UsageDay? = null,
     refreshing: Boolean = false,
     onRefresh: () -> Unit = {},
@@ -47,6 +47,9 @@ fun BalanceCard(
 ) {
     val eink = LocalEInkMode.current
     val successColor = if (eink) EInkColors.darkGray else LightColors.success
+    val balanceText = balance?.totalBalance ?: "-"
+    val currencyText = balance?.currency ?: ""
+    val isAvailable = balance?.isAvailable == true
 
     Column(
         modifier = modifier
@@ -65,7 +68,7 @@ fun BalanceCard(
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
             )
-            if (balance.isAvailable) {
+            if (isAvailable) {
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "可用",
@@ -96,18 +99,20 @@ fun BalanceCard(
             verticalAlignment = Alignment.Bottom
         ) {
             Text(
-                text = balance.totalBalance,
+                text = balanceText,
                 style = MaterialTheme.typography.displayLarge.copy(fontSize = 36.sp),
                 color = MaterialTheme.colorScheme.onSurface,
                 fontWeight = FontWeight.Bold
             )
-            Spacer(modifier = Modifier.width(4.dp))
-            Text(
-                text = balance.currency,
-                style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp),
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                modifier = Modifier.padding(bottom = 4.dp)
-            )
+            if (currencyText.isNotEmpty()) {
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = currencyText,
+                    style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                    modifier = Modifier.padding(bottom = 4.dp)
+                )
+            }
             Spacer(modifier = Modifier.weight(1f))
             if (todayUsage != null) {
                 Column(horizontalAlignment = Alignment.End) {

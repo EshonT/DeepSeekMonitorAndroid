@@ -115,7 +115,7 @@ Compose UI → ViewModel → UseCase → Repository → [Retrofit / DataStore / 
 **ConfigRepositoryImpl**：6 个 Flow 通过嵌套 `combine` 合并（Compose `combine` 最多 5 个入参，超过需嵌套）。
 
 **DashboardViewModel**：
-- 初始化时检查凭据状态，有凭据则自动刷新，无凭据显示 `DataState.NoCredential`。
+- 初始化时始终尝试刷新，无凭据时 API 返回错误则数值显示 "-"。
 - Config 监听：`configRepository.config.drop(1).collectLatest { refresh() }` — 从设置页配置凭据后自动刷新仪表盘。
 - `doRefresh()` 独立处理余额和用量结果，一方失败不影响另一方显示。
 
@@ -150,7 +150,7 @@ Compose UI → ViewModel → UseCase → Repository → [Retrofit / DataStore / 
 - 成功色/图表色全部映射到灰阶。
 - 设备类型检测：`DeviceTypeDetector.detect()` — smallestWidth + E-Ink 硬件特征（com.hmct.eink / com.onyx.eink）。
 
-**状态流转**：`DataState` sealed class — `Idle` / `Loading` / `Ok` / `NoCredential` / `Error(message)`。Screen 中先提取本地变量避免委托属性 `when` 智能转换问题。
+**状态流转**：`DataState` sealed class — `Idle` / `Loading` / `Ok` / `Error(message)`。Screen 中先提取本地变量避免委托属性 `when` 智能转换问题。无凭据时直接显示主页面，数值显示 "-"。
 
 **设置页布局**：列表式布局，`HorizontalDivider` 分割线。区域：显示与刷新 → API Key → 用量同步。主题选择：点击行弹 AlertDialog 单选（●/○ 标记）。刷新间隔：5 档自定义滑块（Canvas 拖拽 + 圆点）。
 

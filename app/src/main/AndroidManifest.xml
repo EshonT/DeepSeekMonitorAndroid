@@ -17,19 +17,52 @@
         android:allowBackup="false"
         android:fullBackupContent="false"
         android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
         android:label="DeepSeek Monitor"
         android:supportsRtl="true"
         android:theme="@style/Theme.DeepSeekMonitor">
 
+        <!--
+            MainActivity 本身不持有 LAUNCHER intent-filter，
+            启动入口由下方的 activity-alias 动态切换。
+            水墨屏模式下启用 MainActivityEink（灰度图标），
+            其他模式启用 MainActivityDefault（彩色图标）。
+        -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize"
             android:theme="@style/Theme.DeepSeekMonitor">
+        </activity>
+
+        <!-- 默认启动图标（彩色 DeepSeek 品牌图标） -->
+        <activity-alias
+            android:name=".MainActivityDefault"
+            android:enabled="true"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher"
+            android:roundIcon="@mipmap/ic_launcher_round"
+            android:label="DeepSeek Monitor"
+            android:targetActivity=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity>
+        </activity-alias>
+
+        <!-- 水墨屏启动图标（高对比度黑白图标） -->
+        <activity-alias
+            android:name=".MainActivityEink"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_eink"
+            android:roundIcon="@mipmap/ic_launcher_eink_round"
+            android:label="DeepSeek Monitor"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
     </application>
 </manifest>

@@ -69,98 +69,75 @@ fun DashboardScreen(
     val usageResult = state.usageResult
     val isRefreshing = state.isRefreshing
 
-        Column(
-            modifier = modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 2.dp)
-        ) {
-            // ── 余额区域 ──
-            when (balanceState) {
-                DataState.Loading -> LoadingView(
-                    message = "查询余额...",
-                    modifier = Modifier.height(200.dp)
-                )
-                is DataState.Error -> ErrorView(
-                    message = balanceState.message,
-                    onRetry = { viewModel.refresh() },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                else -> {
-                    val b = balance
-                    if (b != null) {
-                        val today = usageResult?.days?.find {
-                            it.date == java.time.LocalDate.now().toString()
-                        }
-                        BalanceCard(
-                            balance = b,
-                            todayUsage = today,
-                            refreshing = isRefreshing,
-                            onRefresh = { viewModel.refresh() },
-                            onSettings = onNavigateToSettings
-                        )
-                    } else {
-                        NoApiKeyPlaceholder(onNavigateToSettings)
-                    }
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .statusBarsPadding()
+            .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 2.dp)
+    ) {
+        // ── 余额区域 ──
+        when (balanceState) {
+            DataState.Loading -> LoadingView(
+                message = "查询余额...",
+                modifier = Modifier.height(200.dp)
+            )
+            is DataState.Error -> ErrorView(
+                message = balanceState.message,
+                onRetry = { viewModel.refresh() },
+                modifier = Modifier.fillMaxWidth()
+            )
+            else -> {
+                val today = usageResult?.days?.find {
+                    it.date == java.time.LocalDate.now().toString()
                 }
-            }
-
-            // ── 模型用量 + 趋势图 ──
-            val usage = usageResult
-            val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
-            if (usage != null) {
-                val today = java.time.LocalDate.now().toString()
-                val pastDays = usage.days
-                    .filter { it.date <= today }
-                    .takeLast(7)
-
-                if (isLandscape && pastDays.isNotEmpty()) {
-                    // 横屏：左卡片 + 右图表（撑满高度）
-                    Row(modifier = Modifier.fillMaxWidth().weight(1f)) {
-                        Column(modifier = Modifier.weight(0.3f)) {
-                            UsageSection(models = usage.models, onModelClick = onNavigateToDetail, vertical = true)
-                        }
-                        Spacer(modifier = Modifier.width(8.dp))
-                        UsageTrendChart(days = pastDays, modifier = Modifier.weight(0.7f), fillHeight = true)
-                    }
-                } else {
-                    // 竖屏：卡片 + 图表（自然高度）
-                    UsageSection(models = usage.models, onModelClick = onNavigateToDetail, vertical = true)
-                    if (pastDays.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        UsageTrendChart(days = pastDays)
-                    }
-                }
+                BalanceCard(
+                    balance = balance,
+                    todayUsage = today,
+                    refreshing = isRefreshing,
+                    onRefresh = { viewModel.refresh() },
+                    onSettings = onNavigateToSettings
+                )
             }
         }
-}
 
-/**
- * 未配置 API Key 时的空状态提示。
- */
-@Composable
-private fun NoApiKeyPlaceholder(onSettings: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.surface)
-            .padding(16.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("🔑", style = MaterialTheme.typography.headlineLarge)
-            Spacer(modifier = Modifier.height(10.dp))
-            Text(
-                "未配置 API Key",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface
+        // ── 模型用量 + 趋势图 ──
+        when (usageState) {
+            DataState.Loading -> LoadingView(
+                message = "加载用量数据...",
+                modifier = Modifier.weight(1f)
             )
-            Spacer(modifier = Modifier.height(8.dp))
-            IconButton(onClick = onSettings) {
-                Icon(Icons.Default.Settings, "设置",
-                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                    modifier = Modifier.size(24.dp))
+            is DataState.Error -> ErrorView(
+                message = usageState.message,
+                onRetry = { viewModel.refresh() },
+                modifier = Modifier.fillMaxWidth()
+            )
+            else -> {
+                val usage = usageResult
+                if (usage != null) {
+                    val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+                    val today = java.time.LocalDate.now().toString()
+                    val pastDays = usageResult.days
+                        .filter { it.date <= today }
+                        .takeLast(7)
+
+                    if (isLandscape && pastDays.isNotEmpty()) {
+                        // 横屏：左卡片 + 右图表（撑满高度）
+                        Row(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                            Column(modifier = Modifier.weight(0.3f)) {
+                                UsageSection(models = usage.models, onModelClick = onNavigateToDetail, vertical = true)
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            UsageTrendChart(days = pastDays, modifier = Modifier.weight(0.7f), fillHeight = true)
+                        }
+                    } else {
+                        // 竖屏：卡片 + 图表（自然高度）
+                        UsageSection(models = usage.models, onModelClick = onNavigateToDetail, vertical = true)
+                        if (pastDays.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            UsageTrendChart(days = pastDays)
+                        }
+                    }
+                }
             }
         }
     }

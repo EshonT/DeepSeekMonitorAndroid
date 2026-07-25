@@ -7,6 +7,8 @@
     <color name="surface">#FFFFFFFF</color>
     <color name="on_primary">#FFFFFFFF</color>
     <color name="ic_launcher_background">#FF4D6BFE</color>
+    <!-- 水墨屏启动图标背景：纯白，与水墨屏底色一致 -->
+    <color name="ic_launcher_eink_background">#FFFFFFFF</color>
 
     <style name="Theme.DeepSeekMonitor" parent="android:Theme.Material.Light.NoActionBar">
         <item name="android:statusBarColor">@android:color/transparent</item>

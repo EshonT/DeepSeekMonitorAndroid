@@ -18,7 +18,8 @@ interface ConfigRepository {
 
     // ── 用量 Token ──
 
-    suspend fun saveUsageToken(token: String)
+    suspend fun saveUsageTokenSilent(token: String)
+    suspend fun notifyUsageTokenChanged()
     suspend fun clearUsageToken()
 
     // ── 主题 ──

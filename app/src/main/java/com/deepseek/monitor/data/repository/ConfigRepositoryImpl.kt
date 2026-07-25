@@ -50,8 +50,12 @@ class ConfigRepositoryImpl @Inject constructor(
         configDataStore.clearApiKey()
     }
 
-    override suspend fun saveUsageToken(token: String) {
-        configDataStore.saveUsageToken(token)
+    override suspend fun saveUsageTokenSilent(token: String) {
+        configDataStore.saveUsageTokenSilent(token)
+    }
+
+    override suspend fun notifyUsageTokenChanged() {
+        configDataStore.notifyUsageTokenChanged()
     }
 
     override suspend fun clearUsageToken() {

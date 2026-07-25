@@ -37,8 +37,6 @@ android {
         }
         debug {
             isMinifyEnabled = false
-            // 调试包后缀，用于与 release 包共存
-            applicationIdSuffix = ".debug"
         }
     }
 
