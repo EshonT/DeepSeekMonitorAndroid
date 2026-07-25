@@ -53,7 +53,7 @@ fun BalanceCard(
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
             .background(MaterialTheme.colorScheme.surface)
-            .padding(16.dp)
+            .padding(8.dp)
     ) {
         // 标题行：账户余额 + 操作按钮
         Row(
@@ -80,19 +80,17 @@ fun BalanceCard(
                 Icon(
                     Icons.Default.Refresh, "刷新",
                     tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                    modifier = Modifier.size(26.dp)
+                    modifier = Modifier.size(32.dp)
                 )
             }
             IconButton(onClick = onSettings, modifier = Modifier.size(44.dp)) {
                 Icon(
                     Icons.Default.Settings, "设置",
                     tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                    modifier = Modifier.size(26.dp)
+                    modifier = Modifier.size(32.dp)
                 )
             }
         }
-
-        Spacer(modifier = Modifier.height(8.dp))
 
         Row(
             verticalAlignment = Alignment.Bottom

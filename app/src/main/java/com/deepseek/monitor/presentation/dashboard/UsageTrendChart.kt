@@ -23,6 +23,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -36,17 +37,18 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import android.content.res.Configuration
-import androidx.compose.ui.platform.LocalConfiguration
 import com.deepseek.monitor.domain.model.UsageDay
 import com.deepseek.monitor.presentation.theme.EInkColors
 import com.deepseek.monitor.presentation.theme.LightColors
 import com.deepseek.monitor.presentation.theme.LocalEInkMode
 import com.deepseek.monitor.util.TokenFormatter
+import androidx.compose.ui.platform.LocalDensity
 
 @Composable
 fun UsageTrendChart(
@@ -60,18 +62,21 @@ fun UsageTrendChart(
     val rawMax = chartDays.maxOf { it.totalTokens }.toFloat().coerceAtLeast(1f)
     val topValue = roundUpToNice(rawMax)
     val topLabel = TokenFormatter.fmtTokensShort(topValue.toLong())
-    val axisColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
     val isEInk = LocalEInkMode.current
+    val axisColor = if (isEInk) EInkColors.darkGray else MaterialTheme.colorScheme.outline.copy(alpha = 0.6f)
     val hitColor = if (isEInk) EInkColors.darkGray else LightColors.chartHit
     val missColor = if (isEInk) EInkColors.midGray else LightColors.chartMiss
     val respColor = if (isEInk) EInkColors.black else LightColors.chartResponse
 
     var tooltipDay by remember { mutableStateOf<UsageDay?>(null) }
-    val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+    var tooltipIndex by remember { mutableStateOf(-1) }
+    var tooltipWidthPx by remember { mutableIntStateOf(0) }
 
-    Column(modifier = modifier.fillMaxWidth()) {
+    Column(modifier = modifier
+        .fillMaxWidth()
+        .then(if (fillHeight) Modifier.fillMaxHeight() else Modifier)) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text("近7天用量", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
@@ -81,83 +86,94 @@ fun UsageTrendChart(
             LegendItem(color = missColor, label = "未命中")
             Spacer(modifier = Modifier.width(8.dp))
             LegendItem(color = respColor, label = "输出")
+            Spacer(modifier = Modifier.width(8.dp))
         }
-
-        Spacer(modifier = Modifier.height(2.dp))
 
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .then(if (fillHeight) Modifier.fillMaxSize() else Modifier.height(200.dp))
-                .padding(start = 0.dp, end = 8.dp, top = 12.dp, bottom = 8.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(MaterialTheme.colorScheme.surface)
+                .then(if (fillHeight) Modifier.weight(1f) else Modifier.height(200.dp))
+                .padding(start = 0.dp, end = 8.dp, top = 8.dp, bottom = 2.dp)
+                .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(12.dp))
         ) {
-            // 顶部数值，在轴线上方右侧
-            Text(topLabel, fontSize = 10.sp,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                modifier = Modifier.align(Alignment.TopEnd).padding(end = 4.dp))
-
             BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
                 val chartH = maxHeight
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f)
-                            .drawBehind {
-                                drawLine(axisColor, Offset(0f, 0f), Offset(size.width, 0f), 1.5.dp.toPx())
-                                drawLine(axisColor, Offset(0f, size.height), Offset(size.width, size.height), 1.5.dp.toPx())
-                            }
-                            .pointerInput(chartDays.size) {
-                                awaitEachGesture {
-                                    val down = awaitFirstDown()
-                                    down.consume()
-                                    val barW = size.width.toFloat() / chartDays.size
-                                    val idx = (down.position.x / barW).toInt().coerceIn(0, chartDays.size - 1)
-                                    tooltipDay = chartDays[idx]
-                                    var released = false
-                                    while (!released) {
-                                        val event = awaitPointerEvent()
-                                        when (event.type) {
-                                            PointerEventType.Move -> {
-                                                val pos = event.changes.firstOrNull()?.position ?: break
-                                                val i = (pos.x / barW).toInt().coerceIn(0, chartDays.size - 1)
-                                                tooltipDay = chartDays[i]
+
+                // 纵轴顶部标注（浮层，不占宽度）
+                Text(topLabel, fontSize = 10.sp,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                    modifier = Modifier.align(Alignment.TopStart).padding(start = 4.dp))
+
+                // 图表区
+                Column(modifier = Modifier.fillMaxWidth().fillMaxHeight()) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f)
+                                .drawBehind {
+                                    drawLine(axisColor, Offset(0f, 0f), Offset(size.width, 0f), 2.dp.toPx())
+                                    drawLine(axisColor, Offset(0f, size.height), Offset(size.width, size.height), 2.dp.toPx())
+                                }
+                                .pointerInput(chartDays.size) {
+                                    awaitEachGesture {
+                                        val down = awaitFirstDown()
+                                        down.consume()
+                                        val barW = size.width.toFloat() / chartDays.size
+                                        val idx = (down.position.x / barW).toInt().coerceIn(0, chartDays.size - 1)
+                                        tooltipDay = chartDays[idx]
+                                        tooltipIndex = idx
+                                        var released = false
+                                        while (!released) {
+                                            val event = awaitPointerEvent()
+                                            when (event.type) {
+                                                PointerEventType.Move -> {
+                                                    val pos = event.changes.firstOrNull()?.position ?: break
+                                                    val i = (pos.x / barW).toInt().coerceIn(0, chartDays.size - 1)
+                                                    tooltipDay = chartDays[i]
+                                                tooltipIndex = i
+                                                }
+                                                PointerEventType.Release -> { tooltipDay = null; tooltipIndex = -1; released = true }
+                                                else -> {}
                                             }
-                                            PointerEventType.Release -> { tooltipDay = null; released = true }
-                                            else -> {}
                                         }
                                     }
-                                }
-                            },
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        chartDays.forEach { day ->
-                            BarColumn(day = day, topValue = topValue, chartH = chartH,
-                                hitColor = hitColor, missColor = missColor, respColor = respColor)
+                                },
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            chartDays.forEach { day ->
+                                BarColumn(day = day, topValue = topValue, chartH = chartH,
+                                    hitColor = hitColor, missColor = missColor, respColor = respColor)
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(2.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            chartDays.forEach { day ->
+                                Text(day.date.takeLast(5), fontSize = 9.sp,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                                    textAlign = TextAlign.Center)
+                            }
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(2.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        chartDays.forEach { day ->
-                            Text(day.date.takeLast(5), fontSize = 9.sp,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                                textAlign = TextAlign.Center)
-                        }
-                    }
-                }
-
-                // Tooltip
+                // Tooltip（自适应水平位置，跟随手指所在柱子）
                 val day = tooltipDay
-                if (day != null) {
+                if (day != null && tooltipIndex in chartDays.indices) {
+                    val density = LocalDensity.current
+                    val maxWidthPx = with(density) { maxWidth.toPx() }
+                    val barWPx = maxWidthPx / chartDays.size
+                    val tooltipYPx = with(density) { (-16).dp.roundToPx() }
                     Box(
-                        modifier = Modifier.align(Alignment.TopCenter).offset(y = (-8).dp)
+                        modifier = Modifier.align(Alignment.TopStart).offset {
+                            val centerX = (barWPx * (tooltipIndex + 0.5f)).toInt()
+                            val x = (centerX - tooltipWidthPx / 2).coerceIn(0, (maxWidthPx - tooltipWidthPx).toInt())
+                            IntOffset(x = x, y = tooltipYPx)
+                        }
+                            .onSizeChanged { tooltipWidthPx = it.width }
                             .clip(RoundedCornerShape(8.dp))
                             .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f))
                             .padding(horizontal = 12.dp, vertical = 8.dp)

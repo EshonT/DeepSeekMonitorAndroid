@@ -160,29 +160,23 @@ class SettingsViewModel @Inject constructor(
 
     // ── 刷新配置 ──
 
-    fun setRefreshInterval(seconds: Int) {
+    /**
+     * 同时设置刷新间隔和自动刷新开关。
+     * 合并为单次协程避免并发写 DataStore 导致读到旧值。
+     */
+    fun setRefreshConfig(seconds: Int, enabled: Boolean) {
         viewModelScope.launch {
             configRepository.setRefreshInterval(seconds)
-            // 更新调度周期
-            if (configRepository.config.first().autoRefreshEnabled) {
+            configRepository.setAutoRefreshEnabled(enabled)
+            if (enabled) {
                 refreshScheduler.schedule(seconds)
+            } else {
+                refreshScheduler.cancel()
             }
         }
     }
 
     fun setThemeMode(mode: String) {
         viewModelScope.launch { configRepository.setThemeMode(mode) }
-    }
-
-    fun setAutoRefresh(enabled: Boolean) {
-        viewModelScope.launch {
-            configRepository.setAutoRefreshEnabled(enabled)
-            if (enabled) {
-                val interval = configRepository.config.first().refreshIntervalSeconds
-                refreshScheduler.schedule(interval)
-            } else {
-                refreshScheduler.cancel()
-            }
-        }
     }
 }

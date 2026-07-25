@@ -6,9 +6,11 @@ import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
@@ -20,6 +22,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -34,6 +37,8 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -43,6 +48,7 @@ import com.deepseek.monitor.presentation.theme.EInkColors
 import com.deepseek.monitor.presentation.theme.LightColors
 import com.deepseek.monitor.presentation.theme.LocalEInkMode
 import com.deepseek.monitor.util.TokenFormatter
+import androidx.compose.ui.platform.LocalDensity
 
 /**
  * 折线图，纵轴两条水平线：底部 0 + 顶部自适应整十数，左侧标注。
@@ -69,21 +75,23 @@ fun DailyLineChart(
     // 自适应整十数：向上取整到美观的刻度值
     val topValue = roundUpToNice(rawMax)
     val topLabel = TokenFormatter.fmtTokensShort(topValue.toLong())
-    val bottomLabel = "0"
 
     var tooltipIndex by remember { mutableStateOf(-1) }
+    var tooltipWidthPx by remember { mutableIntStateOf(0) }
     val chartH = if (fillHeight) 130.dp else 170.dp
-    val dotColor = MaterialTheme.colorScheme.onSurface
-    val axisColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.45f)
     val isEInk = LocalEInkMode.current
+    val dotColor = MaterialTheme.colorScheme.onSurface
+    val axisColor = if (isEInk) EInkColors.darkGray else MaterialTheme.colorScheme.outline.copy(alpha = 0.6f)
     val hitColor = if (isEInk) EInkColors.darkGray else LightColors.chartHit
     val missColor = if (isEInk) EInkColors.midGray else LightColors.chartMiss
     val respColor = if (isEInk) EInkColors.black else LightColors.chartResponse
 
-    Column(modifier = modifier.fillMaxWidth()) {
+    Column(modifier = modifier
+        .fillMaxWidth()
+        .then(if (fillHeight) Modifier.fillMaxHeight() else Modifier)) {
         // 图例
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.End
         ) {
             Legend(color = hitColor, label = "命中")
@@ -91,46 +99,35 @@ fun DailyLineChart(
             Legend(color = missColor, label = "未命中")
             Spacer(modifier = Modifier.width(8.dp))
             Legend(color = respColor, label = "输出")
+            Spacer(modifier = Modifier.width(8.dp))
         }
 
         Spacer(modifier = Modifier.height(4.dp))
 
-        // 图表主体：Row[ 纵轴标注 | Canvas ]
-        Box(
+        // 图表主体
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
-                .background(MaterialTheme.colorScheme.surface)
-                .padding(start = 0.dp, end = 8.dp, top = 12.dp, bottom = 8.dp)
+                .then(if (fillHeight) Modifier.weight(1f) else Modifier)
+                .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(12.dp))
+                .padding(start = 0.dp, end = 8.dp, top = 8.dp, bottom = 2.dp)
         ) {
-            Row(modifier = Modifier.fillMaxWidth()) {
-                // 纵轴标注列
-                Column(
-                    modifier = Modifier
-                        .width(40.dp)
-                        .height(chartH + 4.dp),
-                    verticalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        topLabel,
-                        fontSize = 10.sp,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                        modifier = Modifier.align(Alignment.Start)
-                    )
-                    Text(
-                        bottomLabel,
-                        fontSize = 10.sp,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                        modifier = Modifier.align(Alignment.Start)
-                    )
-                }
+            // 纵轴顶部标注（浮层，不占宽度）
+            Text(
+                topLabel,
+                fontSize = 10.sp,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                modifier = Modifier.align(Alignment.TopStart).padding(start = 4.dp)
+            )
 
-                // 折线图画布
-                Column(modifier = Modifier.weight(1f)) {
-                    Canvas(
+            // 折线图画布
+            Column(modifier = Modifier
+                .fillMaxWidth()
+                .then(if (fillHeight) Modifier.fillMaxHeight() else Modifier)) {
+                Canvas(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(chartH)
+                            .then(if (fillHeight) Modifier.weight(1f) else Modifier.height(chartH))
                             .pointerInput(points.size) {
                                 awaitEachGesture {
                                     val down = awaitFirstDown()
@@ -171,10 +168,10 @@ fun DailyLineChart(
                         val hitLine = points.map { Offset(it.index * step, y(it.hit.toFloat())) }
 
                         // 顶部横线（topValue）
-                        drawLine(axisColor, Offset(0f, 0f), Offset(w, 0f), 1.5.dp.toPx())
+                        drawLine(axisColor, Offset(0f, 0f), Offset(w, 0f), 2.dp.toPx())
 
                         // 底部横线（0）
-                        drawLine(axisColor, Offset(0f, h), Offset(w, h), 1.5.dp.toPx())
+                        drawLine(axisColor, Offset(0f, h), Offset(w, h), 2.dp.toPx())
 
                         // 三条曲线
                         drawCurvePath(respLine, respColor)
@@ -205,15 +202,21 @@ fun DailyLineChart(
                         }
                     }
                 }
-            }
 
-            // Tooltip 浮层
+            // Tooltip 浮层（自适应水平位置，跟随手指所在数据点）
             if (tooltipIndex in points.indices) {
                 val pt = points[tooltipIndex]
+                val density = LocalDensity.current
+                val maxWidthPx = with(density) { maxWidth.toPx() }
+                val stepPx = maxWidthPx / points.size.coerceAtLeast(2)
+                val tooltipYPx = with(density) { (-16).dp.roundToPx() }
                 Box(
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .offset(y = (-8).dp)
+                    modifier = Modifier.align(Alignment.TopStart).offset {
+                        val centerX = (stepPx * (tooltipIndex + 0.5f)).toInt()
+                        val x = (centerX - tooltipWidthPx / 2).coerceIn(0, (maxWidthPx - tooltipWidthPx).toInt())
+                        IntOffset(x = x, y = tooltipYPx)
+                    }
+                        .onSizeChanged { tooltipWidthPx = it.width }
                         .clip(RoundedCornerShape(8.dp))
                         .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f))
                         .padding(horizontal = 12.dp, vertical = 6.dp)

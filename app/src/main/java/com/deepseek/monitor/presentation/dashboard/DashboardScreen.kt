@@ -73,10 +73,8 @@ fun DashboardScreen(
             modifier = modifier
                 .fillMaxSize()
                 .statusBarsPadding()
-                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 2.dp)
         ) {
-            Spacer(modifier = Modifier.height(6.dp))
-
             // ── 余额区域 ──
             when (balanceState) {
                 DataState.Loading -> LoadingView(
@@ -122,7 +120,7 @@ fun DashboardScreen(
                         Column(modifier = Modifier.weight(0.3f)) {
                             UsageSection(models = usage.models, onModelClick = onNavigateToDetail, vertical = true)
                         }
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
                         UsageTrendChart(days = pastDays, modifier = Modifier.weight(0.7f), fillHeight = true)
                     }
                 } else {

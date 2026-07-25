@@ -2,6 +2,8 @@ package com.deepseek.monitor.presentation.detail
 
 import android.content.res.Configuration
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,6 +23,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
@@ -69,21 +72,20 @@ fun DetailScreen(
                     modifier = modifier
                         .fillMaxSize()
                         .statusBarsPadding()
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 2.dp)
                 ) {
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
                     // 页首
-                    HeaderRow(name, modelData, model)
+                    HeaderRow(name, modelData, model, onNavigateBack)
                     Spacer(modifier = Modifier.height(12.dp))
 
                     if (isLandscape) {
                         LandscapeLayout(modelData, recentDays, model)
                     } else {
                         PortraitLayout(modelData, recentDays, model)
+                        Spacer(modifier = Modifier.height(24.dp))
                     }
-
-                    Spacer(modifier = Modifier.height(24.dp))
                 }
             }
         }
@@ -91,7 +93,7 @@ fun DetailScreen(
 }
 
 @Composable
-private fun HeaderRow(name: String, modelData: UsageModel?, model: String) {
+private fun HeaderRow(name: String, modelData: UsageModel?, model: String, onNavigateBack: () -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.Bottom
@@ -99,7 +101,11 @@ private fun HeaderRow(name: String, modelData: UsageModel?, model: String) {
         Text(
             name,
             style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.clickable(
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() }
+            ) { onNavigateBack() }
         )
         Spacer(modifier = Modifier.weight(1f))
         if (modelData != null) {
@@ -133,17 +139,18 @@ private fun PortraitLayout(
     DailyLineChart(days = recentDays, model = model)
 }
 
-/** 横屏：左侧 35% 三卡片竖排 + 右侧 65% 图表 */
+/** 横屏：左右 2:8 布局（左侧卡片竖排 + 右侧图表） */
 @Composable
 private fun LandscapeLayout(
     modelData: UsageModel?,
     recentDays: List<com.deepseek.monitor.domain.model.UsageDay>,
-    model: String
+    model: String,
+    modifier: Modifier = Modifier
 ) {
-    Row(modifier = Modifier.fillMaxWidth()) {
+    Row(modifier = modifier.fillMaxWidth().fillMaxHeight()) {
         // 左侧卡片区 15%
         Column(
-            modifier = Modifier.width((LocalConfiguration.current.screenWidthDp * 0.15f).dp),
+            modifier = Modifier.fillMaxHeight().width((LocalConfiguration.current.screenWidthDp * 0.20f).dp),
             verticalArrangement = Arrangement.SpaceEvenly
         ) {
             if (modelData != null) {
@@ -154,17 +161,17 @@ private fun LandscapeLayout(
             }
         }
 
-        Spacer(modifier = Modifier.width(16.dp))
+        Spacer(modifier = Modifier.width(8.dp))
 
-        // 右侧图表区 65%
-        Column(modifier = Modifier.weight(1f)) {
+        // 右侧图表区
+        Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
             Text(
                 "按日 Token 消耗",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold
             )
             Spacer(modifier = Modifier.height(4.dp))
-            DailyLineChart(days = recentDays, model = model, fillHeight = true)
+            DailyLineChart(days = recentDays, model = model, fillHeight = true, modifier = Modifier.weight(1f))
         }
     }
 }

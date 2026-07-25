@@ -117,8 +117,7 @@ fun SettingsScreen(
                 current = config.refreshIntervalSeconds,
                 enabled = config.autoRefreshEnabled,
                 onSelect = { seconds, on ->
-                    viewModel.setRefreshInterval(seconds)
-                    viewModel.setAutoRefresh(on)
+                    viewModel.setRefreshConfig(seconds, on)
                 }
             )
 
@@ -395,6 +394,8 @@ private fun RefreshIntervalSlider(
     val options = listOf(0 to "关闭", 60 to "1分钟", 300 to "5分钟", 1800 to "30分钟", 3600 to "1小时")
     val idx = if (!enabled) 0 else options.indexOfFirst { it.first == current }.coerceAtLeast(0)
     var sliderPos by remember { mutableStateOf(idx.toFloat()) }
+    // 当外部 props 变化时同步滑块位置（如 config flow 延迟发射、重新进入页面）
+    LaunchedEffect(idx) { sliderPos = idx.toFloat() }
 
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
