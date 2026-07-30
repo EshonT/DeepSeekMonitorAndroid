@@ -1,5 +1,6 @@
 package com.deepseek.monitor.presentation.dashboard
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -50,6 +51,7 @@ import com.deepseek.monitor.presentation.theme.LocalEInkMode
 import com.deepseek.monitor.util.TokenFormatter
 import androidx.compose.ui.platform.LocalDensity
 
+@SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
 fun UsageTrendChart(
     days: List<UsageDay>,
@@ -61,7 +63,6 @@ fun UsageTrendChart(
 
     val rawMax = chartDays.maxOf { it.totalTokens }.toFloat().coerceAtLeast(1f)
     val topValue = roundUpToNice(rawMax)
-    val topLabel = TokenFormatter.fmtTokensShort(topValue.toLong())
     val isEInk = LocalEInkMode.current
     val axisColor = if (isEInk) EInkColors.darkGray else MaterialTheme.colorScheme.outline.copy(alpha = 0.6f)
     val hitColor = if (isEInk) EInkColors.darkGray else LightColors.chartHit
@@ -98,11 +99,6 @@ fun UsageTrendChart(
         ) {
             BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
                 val chartH = maxHeight
-
-                // 纵轴顶部标注（浮层，不占宽度）
-                Text(topLabel, fontSize = 10.sp,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                    modifier = Modifier.align(Alignment.TopStart).padding(start = 4.dp))
 
                 // 图表区
                 Column(modifier = Modifier.fillMaxWidth().fillMaxHeight()) {
@@ -153,9 +149,11 @@ fun UsageTrendChart(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             chartDays.forEach { day ->
-                                Text(day.date.takeLast(5), fontSize = 9.sp,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                                    textAlign = TextAlign.Center)
+                                Box(modifier = Modifier.width(44.dp), contentAlignment = Alignment.Center) {
+                                    Text(day.date.takeLast(5), fontSize = 9.sp,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                                        textAlign = TextAlign.Center)
+                                }
                             }
                         }
                     }
@@ -212,6 +210,13 @@ private fun BarColumn(
     } else 2.dp
 
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(44.dp)) {
+        Text(
+            TokenFormatter.fmtTokensShort(total),
+            fontSize = 9.sp,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
+            textAlign = TextAlign.Center,
+            modifier = Modifier.width(44.dp)
+        )
         Spacer(modifier = Modifier.weight(1f))
         Canvas(modifier = Modifier.width(barWidth).height(barH)) {
             val h = size.height; val w = size.width
@@ -225,7 +230,12 @@ private fun BarColumn(
             val missH = h * missFrac
             if (missH > 0f) { top -= missH; drawRoundRect(missColor, Offset(0f, top), Size(w, missH), CornerRadius(0f)) }
             val hitH = h * hitFrac
-            if (hitH > 0f) { top -= hitH; drawRoundRect(hitColor, Offset(0f, top), Size(w, hitH), CornerRadius(4.dp.toPx())) }
+            if (hitH > 0f) {
+                top -= hitH
+                val r = kotlin.math.min(4.dp.toPx(), hitH / 2)
+                drawRoundRect(hitColor, Offset(0f, top - r), Size(w, hitH + r), CornerRadius(r, r))
+                drawRect(hitColor, Offset(0f, top + r), Size(w, hitH - r))
+            }
         }
     }
 }

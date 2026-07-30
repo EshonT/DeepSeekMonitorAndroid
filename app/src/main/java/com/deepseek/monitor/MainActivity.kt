@@ -11,8 +11,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalView
 import androidx.navigation.compose.rememberNavController
 import com.deepseek.monitor.data.local.datastore.ConfigDataStore
 import com.deepseek.monitor.presentation.navigation.DeepSeekNavGraph
@@ -29,9 +31,17 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        // FLAG_KEEP_SCREEN_ON 必须在 enableEdgeToEdge() 之后，否则被覆盖
         window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
         setContent {
+            // Compose 层常亮，防止 OEM ROM 清除 Window flag
+            val rootView = LocalView.current
+            DisposableEffect(Unit) {
+                rootView.keepScreenOn = true
+                onDispose { rootView.keepScreenOn = false }
+            }
+
             val raw by configDataStore.themeModeFlow.collectAsState(initial = "auto")
             val resolved = when (raw) {
                 "eink" -> ThemeMode.EINK
