@@ -67,6 +67,12 @@ data class UsageDay(
     /** 当日总 Token */
     val totalTokens: Long,
 
+    /** Flash 当日费用（CNY），来自 by_api_key/cost 接口 */
+    val flashCost: Double,
+
+    /** Pro 当日费用（CNY），来自 by_api_key/cost 接口 */
+    val proCost: Double,
+
     /** 当日总费用 */
     val totalCost: Double
 )

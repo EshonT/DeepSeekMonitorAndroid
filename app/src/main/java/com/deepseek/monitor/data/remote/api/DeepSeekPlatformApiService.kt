@@ -1,5 +1,6 @@
 package com.deepseek.monitor.data.remote.api
 
+import com.deepseek.monitor.data.remote.dto.ByApiKeyCostResponseDto
 import com.deepseek.monitor.data.remote.dto.UsageAmountResponseDto
 import com.deepseek.monitor.data.remote.dto.UsageCostResponseDto
 import retrofit2.http.GET
@@ -36,4 +37,21 @@ interface DeepSeekPlatformApiService {
         @Query("month") month: Int,
         @Query("year") year: Int
     ): UsageCostResponseDto
+
+    /**
+     * 查询按 API Key 拆分的每日费用（按时间戳范围）。
+     *
+     * 与 [getUsageCost] 不同，本接口返回按模型 + 日期拆分的费用明细，
+     * 用于获取各模型每日独立费用（而非仅每日总费用）。
+     *
+     * @param start 起始 Unix 时间戳（秒）
+     * @param end   结束 Unix 时间戳（秒）
+     * @param tz    时区偏移（0 = UTC）
+     */
+    @GET("api/v0/usage/by_api_key/cost")
+    suspend fun getUsageCostByApiKey(
+        @Query("start") start: Long,
+        @Query("end") end: Long,
+        @Query("tz") tz: Int = 0
+    ): ByApiKeyCostResponseDto
 }

@@ -1,7 +1,9 @@
 package com.deepseek.monitor.data.repository
 
+import android.util.Log
 import com.deepseek.monitor.data.local.datastore.ConfigDataStore
 import com.deepseek.monitor.data.remote.api.DeepSeekPlatformApiService
+import com.deepseek.monitor.data.remote.dto.ByApiKeyCostResponseDto
 import com.deepseek.monitor.data.remote.dto.UsageAmountResponseDto
 import com.deepseek.monitor.data.remote.dto.UsageEntryDto
 import com.deepseek.monitor.domain.model.CredentialNotConfiguredException
@@ -16,6 +18,10 @@ import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
 import javax.inject.Inject
 
 /**
@@ -37,12 +43,26 @@ class UsageRepositoryImpl @Inject constructor(
             throw CredentialNotConfiguredException("用量 Token")
         }
 
+        // 计算当月起始和结束 Unix 时间戳（UTC 秒）
+        val startOfMonth = java.time.LocalDate.of(year, month, 1)
+        val endOfMonth = startOfMonth.plusMonths(1)
+        val startTs = startOfMonth.atStartOfDay(java.time.ZoneOffset.UTC).toEpochSecond()
+        val endTs = endOfMonth.atStartOfDay(java.time.ZoneOffset.UTC).toEpochSecond()
+
         val amountDeferred = async { platformApi.getUsageAmount(month, year) }
         val costDeferred = async { platformApi.getUsageCost(month, year) }
+        val costByApiKeyDeferred = async {
+            runCatching { platformApi.getUsageCostByApiKey(startTs, endTs) }
+        }
 
         val amount = amountDeferred.await()
         val cost = costDeferred.await()
-        buildUsageResult(amount, cost)
+        val costByApiKeyResult = costByApiKeyDeferred.await()
+        val costByApiKey = costByApiKeyResult.getOrNull()
+        costByApiKeyResult.exceptionOrNull()?.let {
+            Log.w("UsageRepo", "by_api_key/cost 接口失败，回退到总费用", it)
+        }
+        buildUsageResult(amount, cost, costByApiKey)
     }
 
     override suspend fun verifyUsageToken(token: String, month: Int, year: Int): Boolean {
@@ -81,7 +101,8 @@ class UsageRepositoryImpl @Inject constructor(
 
     private fun buildUsageResult(
         amount: UsageAmountResponseDto,
-        cost: com.deepseek.monitor.data.remote.dto.UsageCostResponseDto
+        cost: com.deepseek.monitor.data.remote.dto.UsageCostResponseDto,
+        costByApiKey: ByApiKeyCostResponseDto?
     ): UsageResult {
         val costTotal = cost.data.bizData.firstOrNull()
 
@@ -115,6 +136,10 @@ class UsageRepositoryImpl @Inject constructor(
             ?.associate { day -> day.date to day.data.sumOf { m -> costSum(m.usage) } }
             ?: emptyMap()
 
+        // 从 by_api_key/cost 接口构建按模型拆分的每日费用映射
+        // 结构：Map<modelKey, Map<dateStr, costSum>>
+        val modelCostByDate = buildModelCostByDate(costByApiKey)
+
         val days = amount.data.bizData.days.map { day ->
             var flash = 0L; var flashHit = 0L; var flashMiss = 0L; var flashResp = 0L
             var pro = 0L; var proHit = 0L; var proMiss = 0L; var proResp = 0L
@@ -141,6 +166,8 @@ class UsageRepositoryImpl @Inject constructor(
                 flashCacheMiss = flashMiss, flashResponse = flashResp,
                 proTokens = pro, proCacheHit = proHit,
                 proCacheMiss = proMiss, proResponse = proResp,
+                flashCost = modelCostByDate["flash"]?.get(day.date) ?: 0.0,
+                proCost = modelCostByDate["pro"]?.get(day.date) ?: 0.0,
                 totalTokens = total,
                 totalCost = costByDate[day.date] ?: 0.0
             )
@@ -152,6 +179,42 @@ class UsageRepositoryImpl @Inject constructor(
             ?: 0.0
 
         return UsageResult(models = models, days = days, monthCost = monthCost)
+    }
+
+    /**
+     * 从 by_api_key/cost 接口构建按模型 + 日期拆分的费用映射。
+     *
+     * 遍历所有 API Key、所有模型 series 中的 buckets，
+     * 汇总同一模型同一天的费用。
+     *
+     * @return Map<modelKey, Map<dateStr, totalCost>>
+     */
+    private fun buildModelCostByDate(response: ByApiKeyCostResponseDto?): Map<String, Map<String, Double>> {
+        if (response == null) return emptyMap()
+
+        val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US).apply {
+            timeZone = TimeZone.getTimeZone("UTC")
+        }
+        val result = mutableMapOf<String, MutableMap<String, Double>>()
+
+        val currencyData = response.data?.bizData?.data ?: return result
+
+        for (currency in currencyData) {
+            for (series in currency.series ?: emptyList()) {
+                val modelKey = when (series.model) {
+                    "deepseek-v4-flash" -> "flash"
+                    "deepseek-v4-pro" -> "pro"
+                    else -> continue  // 忽略 "deepseek-chat & deepseek-reasoner" 等不支持的模型
+                }
+                val dateCostMap = result.getOrPut(modelKey) { mutableMapOf() }
+                for (bucket in series.buckets ?: emptyList()) {
+                    val dateStr = dateFormat.format(Date(bucket.time * 1000))
+                    val costValue = bucket.cost?.toDoubleOrNull() ?: 0.0
+                    dateCostMap[dateStr] = (dateCostMap[dateStr] ?: 0.0) + costValue
+                }
+            }
+        }
+        return result
     }
 
     private fun tokenBreakdown(usage: List<UsageEntryDto>): TokenBreakdown {

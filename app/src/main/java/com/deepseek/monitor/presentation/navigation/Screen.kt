@@ -13,6 +13,9 @@ sealed class Screen(val route: String) {
         fun createRoute(model: String) = "detail/$model"
     }
 
+    /** daily — 当日两个模型用量对比详情 */
+    data object DailyOverview : Screen("daily")
+
     companion object {
         const val ARG_MODEL = "model"
     }

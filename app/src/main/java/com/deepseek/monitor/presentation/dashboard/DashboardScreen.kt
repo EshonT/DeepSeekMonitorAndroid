@@ -47,6 +47,7 @@ import android.content.res.Configuration
 import com.deepseek.monitor.presentation.common.ErrorView
 import com.deepseek.monitor.presentation.common.LoadingView
 import com.deepseek.monitor.presentation.theme.LightColors
+import com.deepseek.monitor.presentation.theme.LocalEInkMode
 import androidx.compose.ui.platform.LocalConfiguration
 
 /**
@@ -58,12 +59,14 @@ import androidx.compose.ui.platform.LocalConfiguration
 fun DashboardScreen(
     onNavigateToSettings: () -> Unit,
     onNavigateToDetail: (String) -> Unit,
+    onNavigateToDaily: () -> Unit = {},
     viewModel: DashboardViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     // 提取本地变量，避免委托属性智能转换问题
+    val isEInk = LocalEInkMode.current
     val balanceState = state.balanceState
     val usageState = state.usageState
     val balance = state.balance
@@ -79,7 +82,7 @@ fun DashboardScreen(
     ) {
         // ── 余额区域 ──
         when (balanceState) {
-            DataState.Loading -> LoadingView(
+            DataState.Loading -> if (!isEInk) LoadingView(
                 message = "查询余额...",
                 modifier = Modifier.height(200.dp)
             )
@@ -97,14 +100,15 @@ fun DashboardScreen(
                     todayUsage = today,
                     refreshing = isRefreshing,
                     onRefresh = { viewModel.refresh() },
-                    onSettings = onNavigateToSettings
+                    onSettings = onNavigateToSettings,
+                    onTodayUsageClick = onNavigateToDaily
                 )
             }
         }
 
         // ── 模型用量 + 趋势图 ──
         when (usageState) {
-            DataState.Loading -> LoadingView(
+            DataState.Loading -> if (!isEInk) LoadingView(
                 message = "加载用量数据...",
                 modifier = Modifier.weight(1f)
             )
