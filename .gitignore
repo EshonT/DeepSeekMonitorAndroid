@@ -40,6 +40,9 @@ app/release/
 app/schemas/
 *.hprof
 
+# Kotlin
+.kotlin/
+
 # OS
 .DS_Store
 Thumbs.db

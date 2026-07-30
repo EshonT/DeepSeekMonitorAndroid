@@ -19,8 +19,13 @@ DeepSeek Monitor Android: Android native adaptation of felikschu/deepseek-monito
 - 支持 API Key 保存、清除和余额验证。
 - 支持用量 Token WebView 自动同步和手动粘贴兜底。
 - 支持亮色 / 暗色 / 水墨屏（E-Ink）三套主题。
+- 水墨屏 6+1 局部/全屏刷新策略，减少残影闪烁。
+- 堆叠柱状图柱顶数值标注、顶部圆角视觉优化。
+- 图表 Tooltip 自适应定位，跟随触摸点居中。
+- 无凭据时直接显示主页面，数值显示 "-"，无需跳转设置页。
+- 屏幕常亮（FLAG_KEEP_SCREEN_ON + View.keepScreenOn）。
 - 支持手机 / 平板 / 折叠屏 / 电纸书多设备自适应布局。
-- 支持 WorkManager 后台定时刷新与状态栏通知。
+- 支持 WorkManager 后台定时刷新与低余额通知。
 
 ## 与原项目的关系
 
@@ -136,6 +141,7 @@ DeepSeekMonitorAndroid/
 
 - `.gradle/`、`build/`
 - `.idea/`
+- `.kotlin/`
 - `local.properties`
 - `app/build/`
 - `*.keystore`、`*.jks`

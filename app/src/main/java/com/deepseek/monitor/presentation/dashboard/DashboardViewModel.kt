@@ -6,6 +6,7 @@ import com.deepseek.monitor.domain.model.Balance
 import com.deepseek.monitor.domain.model.UsageResult
 import com.deepseek.monitor.domain.repository.ConfigRepository
 import com.deepseek.monitor.domain.usecase.RefreshAllUseCase
+import com.deepseek.monitor.presentation.eink.EInkRefreshManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -27,7 +28,8 @@ data class DashboardUiState(
     val currentMonth: Int = 0,
     val currentYear: Int = 0,
 
-    val isRefreshing: Boolean = false
+    val isRefreshing: Boolean = false,
+    val chartFullRefreshKey: Int = 0
 )
 
 sealed class DataState {
@@ -40,7 +42,8 @@ sealed class DataState {
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
     private val refreshAllUseCase: RefreshAllUseCase,
-    private val configRepository: ConfigRepository
+    private val configRepository: ConfigRepository,
+    private val eInkRefreshManager: EInkRefreshManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DashboardUiState())
@@ -103,7 +106,9 @@ class DashboardViewModel @Inject constructor(
                 result.usageError != null -> DataState.Error(result.usageError)
                 else -> DataState.Ok
             },
-            isRefreshing = false
+            isRefreshing = false,
+            chartFullRefreshKey = eInkRefreshManager.fullRefreshKey
         )}
+        eInkRefreshManager.onLocalUpdate()
     }
 }

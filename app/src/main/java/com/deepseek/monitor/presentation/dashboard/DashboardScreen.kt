@@ -29,6 +29,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -68,6 +69,7 @@ fun DashboardScreen(
     val balance = state.balance
     val usageResult = state.usageResult
     val isRefreshing = state.isRefreshing
+    val chartFullRefreshKey = state.chartFullRefreshKey
 
     Column(
         modifier = modifier
@@ -127,14 +129,14 @@ fun DashboardScreen(
                                 UsageSection(models = usage.models, onModelClick = onNavigateToDetail, vertical = true)
                             }
                             Spacer(modifier = Modifier.width(8.dp))
-                            UsageTrendChart(days = pastDays, modifier = Modifier.weight(0.7f), fillHeight = true)
+                            key(chartFullRefreshKey) { UsageTrendChart(days = pastDays, modifier = Modifier.weight(0.7f), fillHeight = true) }
                         }
                     } else {
                         // 竖屏：卡片 + 图表（自然高度）
                         UsageSection(models = usage.models, onModelClick = onNavigateToDetail, vertical = true)
                         if (pastDays.isNotEmpty()) {
                             Spacer(modifier = Modifier.height(8.dp))
-                            UsageTrendChart(days = pastDays)
+                            key(chartFullRefreshKey) { UsageTrendChart(days = pastDays) }
                         }
                     }
                 }
