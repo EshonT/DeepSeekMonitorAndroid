@@ -15,6 +15,7 @@ DeepSeek Monitor Android: Android native adaptation of felikschu/deepseek-monito
 - 查询 DeepSeek API 账户余额，使用 DeepSeek 官方余额接口。
 - 查询 DeepSeek 平台用量数据，包括当月消费、模型 Token 总量、请求数、缓存命中、缓存未命中和输出 Token。
 - 支持 V4 Flash 与 V4 Pro 两类模型用量展示。
+- 支持当日使用情况详情页：双模型 Token 比例条、费用比例条、命中率对比。
 - 支持最近 7 天用量趋势堆叠柱状图和平滑折线图详情。
 - 支持 API Key 保存、清除和余额验证。
 - 支持用量 Token WebView 自动同步和手动粘贴兜底。
@@ -39,7 +40,7 @@ DeepSeek Monitor Android: Android native adaptation of felikschu/deepseek-monito
 
 ## 系统要求
 
-- Android 12 (API 31) 及以上。
+- Android 8.0 (API 26) 及以上。
 - 水墨屏主题需设备支持相关硬件特性（文石、海信等 E-Ink 设备）。
 
 ## 构建
@@ -110,6 +111,7 @@ DeepSeekMonitorAndroid/
 │   ├── presentation/
 │   │   ├── navigation/             # 导航图与路由
 │   │   ├── dashboard/              # 仪表盘（余额卡片、用量行、趋势图）
+│   │   ├── daily/                  # 当日详情页（双模型费用、Token 占比）
 │   │   ├── detail/                 # 模型详情页（每日折线图）
 │   │   ├── settings/               # 设置页（API Key、Token、主题、刷新间隔）
 │   │   ├── theme/                  # 三套主题（Light / Dark / E-Ink）
